@@ -25,17 +25,21 @@ namespace pksdriver {
                 . # . . .
                 . . . . .
             `);
+
+            // should only send the config when the bluetooth is connected
+            control.inBackground(() => {
+                // send config for 10s should be enough right?
+                for (let i=0; i<20; i++) {
+                    bluetooth.uartWriteLine("C,I,12,B,button1,B,button2,B,button3,B,button4,B,button5,B,button6,B,button7,S,0,255,slider1,S,0,255,slider2,S,0,255,slider3,TB,toggleButton1,TB,toggleButton2,O,3,hello,true,world,true,ggez,true,haha,false");
+                    basic.pause(500)
+                }
+            });
         });
 
-        bluetooth.onBluetoothDisconnected(() => {connected=false})
-
-        control.inBackground(() => {
-            // send config for 10s should be enough right?
-            for (let i=0; i<20; i++) {
-                bluetooth.uartWriteLine("C,I,12,B,button1,B,button2,B,button3,B,button4,B,button5,B,button6,B,button7,S,0,255,slider1,S,0,255,slider2,S,0,255,slider3,TB,toggleButton1,TB,toggleButton2,O,3,hello,true,world,true,ggez,true,haha,false");
-                basic.pause(500)
-            }
-        });
+        bluetooth.onBluetoothDisconnected(() => {
+            connected=false
+            basic.clearScreen()
+        })
 
     }
 
