@@ -86,7 +86,8 @@ namespace pksdriver {
     }
 
     /**
-     * make configuration for GUI based on what you put in here
+     * make configuration for GUI based on what you put in here  
+     * you must be connected to bluetooth!
      * @param configs The configuration list
      */
     // TODO: update subcategory in the future
@@ -96,10 +97,25 @@ namespace pksdriver {
     //% group="Configuration"
     //% weight=98
     export function makeConfiguration(configs: String[]): void {
-        for (const c in configs) {
-            // do something
-            console.log(c)
+        if (!connected) {
+             basic.showLeds(`
+                # . . . #
+                .#. . # .
+                . . # . .
+                . # . # .
+                # . . . #
+            `);
+            return;
         }
+        // TODO: additional processing for plot is needed (i think)
+        // PROCESSING GOES HERE...
+
+        // automatically determine how long the configs are
+        let config_string = `C,I,${configs.length}`
+        config_string += configs.join(",")
+
+
+        bluetooth.uartWriteLine(config_string)
     }
 
     /**
@@ -149,6 +165,25 @@ namespace pksdriver {
         const output: string = `TB,${name}`;
         return output;
     }
+
+    /**
+     * Creates a joystick
+     * @param anglename The name of the angle
+     * @param smax The maximum value of the joystick
+     * @param strengthName The name of the strength
+     * @param joystickName The name of the joystick
+     */
+    //% anglename.defl="angle1"
+    //% smax.min=0 smax.max=255 smax.defl=255
+    //% strengthName.defl="strength1"
+    //% joyStickName.defl="Joystick"
+    //% blockId=pksdriver_bluetooth_joystick block="create joystick $joystickName angle $anglename max strength $smax strength $strengthName subcategory="Bluetooth"
+    //% group="Configuration"
+    export function createJoystick(anglename: string, smax: number, strengthName: string, joystickName: string): string {
+        const output: string = `J,${anglename},${smax},${strengthName},${joystickName}`;
+        return output;
+    }
+
 }
 
 /*
