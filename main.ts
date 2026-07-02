@@ -30,7 +30,7 @@ namespace pksdriver {
             control.inBackground(() => {
                 // send config for 10s should be enough right?
                 for (let i=0; i<20; i++) {
-                    bluetooth.uartWriteLine("C,I,12,B,button1,B,button2,B,button3,B,button4,B,button5,B,button6,B,button7,S,0,255,slider1,S,0,255,slider2,S,0,255,slider3,TB,toggleButton1,TB,toggleButton2,O,3,hello,true,world,true,ggez,true,haha,false");
+                    bluetooth.uartWriteLine("C,I,12,B,button1,J,123,256,mikuchan,mikuchanchan,B,button3,B,button4,B,button5,B,button6,B,button7,S,0,255,slider1,S,0,255,slider2,S,0,255,slider3,TB,toggleButton1,TB,toggleButton2,O,3,hello,true,world,true,ggez,true,haha,false");
                     basic.pause(500)
                 }
             });
@@ -82,7 +82,72 @@ namespace pksdriver {
                 basic.pause(200)
             }
         })
-   
+
+    }
+
+    /**
+     * make configuration for GUI based on what you put in here
+     * @param configs The configuration list
+     */
+    // TODO: update subcategory in the future
+    //% blockId=pksdriver_bluetooth_makeconfig block="make configuration with $configs" subcategory="Bluetooth"
+    //% configs.shadow="lists_create_with"
+    //% configs.defl="pksdriver_bluetooth_button"
+    //% group="Configuration"
+    //% weight=98
+    export function makeConfiguration(configs: String[]): void {
+        for (const c in configs) {
+            // do something
+            console.log(c)
+        }
+    }
+
+    /**
+     * Creates a slider
+     * @param min The minimum value of slider (>0), eg: 1
+     * @param max The maximum value of slider (<=255), eg: 255
+     * @param name The name of the slider
+     */
+    //% min.defl=0
+    //% max.defl=255
+    //% name.defl="Slider"
+    //% blockId=pksdriver_bluetooth_slider block="create slider $min $max $name" subcategory="Bluetooth"
+    //% group="Configuration"
+    export function createSlider(min: number, max: number, name: string): String {
+
+        // silently change min/max if they are set to the wrong value
+        if (min > max) {
+            const temp = min
+            min = max
+            max = temp
+        }
+        const output: string = `S,${min},${max},${name}`
+        return output
+
+    }
+
+    /**
+     * Creates a button
+     * @param name The name of the button
+     */
+    //% name.defl="Button"
+    //% blockId=pksdriver_bluetooth_button block="create button $name" subcategory="Bluetooth"
+    //% group="Configuration"
+    export function createButton(name: string): string {
+        const output: string = `B,${name}`;
+        return output;
+    }
+
+    /**
+     * Creates a toggle button
+     * @param name The name of the toggle button
+     */
+    //% name.defl="ToggleButton"
+    //% blockId=pksdriver_bluetooth_toggle_button block="create toggle button $name" subcategory="Bluetooth"
+    //% group="Configuration"
+    export function createToggleButton(name: string): string {
+        const output: string = `TB,${name}`;
+        return output;
     }
 }
 
