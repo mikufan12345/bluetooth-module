@@ -16,7 +16,7 @@ namespace pksdriver {
 
         bluetooth.startUartService();
 
-        bluetooth.onBluetoothConnected(function () {
+        control.onEvent(DAL.MICROBIT_ID_BLE, DAL.MICROBIT_BLE_EVT_CONNECTED, function () {
             connected = true;
             basic.showLeds(`
                 . . . . #
@@ -25,26 +25,18 @@ namespace pksdriver {
                 . # . . .
                 . . . . .
             `);
-
-            // // should only send the config when the bluetooth is connected
-            // control.inBackground(() => {
-            //     // send config for 10s should be enough right?
-            //     for (let i=0; i<20; i++) {
-            //         bluetooth.uartWriteLine("C,I,12,B,button1,J,123,256,mikuchan,mikuchanchan,B,button3,B,button4,B,button5,B,button6,B,button7,S,0,255,slider1,S,0,255,slider2,S,0,255,slider3,TB,toggleButton1,TB,toggleButton2,O,4,hello,true,world,true,ggez,true,haha,false");
-            //         basic.pause(500)
-            //     }
-            // });
+        });
+        
+        control.onEvent(DAL.MICROBIT_ID_BLE_UART, DAL.MICROBIT_UART_S_EVT_DELIM_MATCH, function () {
+            
+            // Read the data buffer up until the newline marker
+            let receivedString = bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine));
+            console.log(receivedString)
         });
 
-        bluetooth.onUartDataReceived(serial.delimiters(Delimiters.NewLine), () => {
-            let a = bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine))
-            basic.showString(a)
-        })
-
-        bluetooth.onBluetoothDisconnected(() => {
-            connected=false
-            basic.clearScreen()
-        })
+        control.onEvent(DAL.MICROBIT_ID_BLE, DAL.MICROBIT_BLE_EVT_DISCONNECTED, function () {
+            connected = false;
+        });
 
     }
 
@@ -91,7 +83,40 @@ namespace pksdriver {
     }
 
     /**
-     * make configuration for GUI based on what you put in here  
+     * will tell you if microbit is connected to bluetooth or not
+     */
+    //% blockId=pksdriver_bluetooth_connected block="bluetooth is connected" subcategory="Bluetooth"
+    //% group="Bluetooth"
+    //% weight=98
+    export function isConnected(): boolean {
+        return connected;
+    }
+
+    /**
+     * wait until you are connected to bluetooth
+     * blocks next block
+     */
+    //% blockId=pksdriver_bluetooth_waitconn block="wait until bluetooth is connected" subcategory="Bluetooth"
+    //% group="Bluetooth"
+    //% weight=98
+    export function waitUntilConnected(): void {
+        while (!connected) {
+            basic.pause(200)
+        }
+        console.log("done connected")
+        // it actually takes like 1.4s for the connection to be stable 
+        // so this exist to have a little buffer
+        for (let i=0; i<10; i++) {
+            console.log(`test send ${i}`)
+            bluetooth.uartWriteLine("hi")
+            basic.pause(200)
+        }
+    }
+
+    
+
+    /**
+     * make configuration for GUI based on what you put in here.\n  
      * you must be connected to bluetooth!
      * @param configs The configuration list
      */
@@ -104,10 +129,11 @@ namespace pksdriver {
     //% weight=98
     export function makeConfiguration(configs: string[]): void {
         let config_string = `C,I,${configs.length},`
-        console.log("hi guys")
-        console.log(config_string)
+        if (configs.some(item => item.includes("O,"))) {
+            config_string=`C,I,${configs.length-1},`
+        }
         config_string += configs.join(",")
-        console.log(config_string)
+        config_string += "\n"
 
         if (!connected) {
             basic.showIcon(IconNames.No);
@@ -116,6 +142,7 @@ namespace pksdriver {
         // TODO: additional processing for plot is needed (i think)
         // PROCESSING GOES HERE...
 
+        console.log(`send data: ${config_string}`)
         // automatically determine how long the configs are
         bluetooth.uartWriteLine(config_string)
     }
@@ -168,6 +195,19 @@ namespace pksdriver {
     //% group="Configuration"
     export function createToggleButton(name: string): string {
         const output: string = `TB,${name}`;
+        return output;
+    }
+
+    /**
+     * Creates a text field
+     * @param name The name of the text field
+     */
+    //% color="#f150f1"
+    //% name.defl="TextField"
+    //% blockId=pksdriver_bluetooth_textfield block="create text field $name" subcategory="Bluetooth"
+    //% group="Configuration"
+    export function createTextField(name: string): string {
+        const output: string = `TF,${name}`;
         return output;
     }
 
