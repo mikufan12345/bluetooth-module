@@ -26,15 +26,20 @@ namespace pksdriver {
                 . . . . .
             `);
 
-            // should only send the config when the bluetooth is connected
-            control.inBackground(() => {
-                // send config for 10s should be enough right?
-                for (let i=0; i<20; i++) {
-                    bluetooth.uartWriteLine("C,I,12,B,button1,J,123,256,mikuchan,mikuchanchan,B,button3,B,button4,B,button5,B,button6,B,button7,S,0,255,slider1,S,0,255,slider2,S,0,255,slider3,TB,toggleButton1,TB,toggleButton2,O,3,hello,true,world,true,ggez,true,haha,false");
-                    basic.pause(500)
-                }
-            });
+            // // should only send the config when the bluetooth is connected
+            // control.inBackground(() => {
+            //     // send config for 10s should be enough right?
+            //     for (let i=0; i<20; i++) {
+            //         bluetooth.uartWriteLine("C,I,12,B,button1,J,123,256,mikuchan,mikuchanchan,B,button3,B,button4,B,button5,B,button6,B,button7,S,0,255,slider1,S,0,255,slider2,S,0,255,slider3,TB,toggleButton1,TB,toggleButton2,O,4,hello,true,world,true,ggez,true,haha,false");
+            //         basic.pause(500)
+            //     }
+            // });
         });
+
+        bluetooth.onUartDataReceived(serial.delimiters(Delimiters.NewLine), () => {
+            let a = bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine))
+            basic.showString(a)
+        })
 
         bluetooth.onBluetoothDisconnected(() => {
             connected=false
@@ -91,30 +96,27 @@ namespace pksdriver {
      * @param configs The configuration list
      */
     // TODO: update subcategory in the future
+    //% color="#f150f1"
     //% blockId=pksdriver_bluetooth_makeconfig block="make configuration with $configs" subcategory="Bluetooth"
     //% configs.shadow="lists_create_with"
     //% configs.defl="pksdriver_bluetooth_button"
     //% group="Configuration"
     //% weight=98
-    export function makeConfiguration(configs: String[]): void {
+    export function makeConfiguration(configs: string[]): void {
+        let config_string = `C,I,${configs.length},`
+        console.log("hi guys")
+        console.log(config_string)
+        config_string += configs.join(",")
+        console.log(config_string)
+
         if (!connected) {
-             basic.showLeds(`
-                # . . . #
-                .#. . # .
-                . . # . .
-                . # . # .
-                # . . . #
-            `);
+            basic.showIcon(IconNames.No);
             return;
         }
         // TODO: additional processing for plot is needed (i think)
         // PROCESSING GOES HERE...
 
         // automatically determine how long the configs are
-        let config_string = `C,I,${configs.length}`
-        config_string += configs.join(",")
-
-
         bluetooth.uartWriteLine(config_string)
     }
 
@@ -124,6 +126,7 @@ namespace pksdriver {
      * @param max The maximum value of slider (<=255), eg: 255
      * @param name The name of the slider
      */
+    //% color="#f150f1"
     //% min.defl=0
     //% max.defl=255
     //% name.defl="Slider"
@@ -146,6 +149,7 @@ namespace pksdriver {
      * Creates a button
      * @param name The name of the button
      */
+    //% color="#f150f1"
     //% name.defl="Button"
     //% blockId=pksdriver_bluetooth_button block="create button $name" subcategory="Bluetooth"
     //% group="Configuration"
@@ -158,6 +162,7 @@ namespace pksdriver {
      * Creates a toggle button
      * @param name The name of the toggle button
      */
+    //% color="#f150f1"
     //% name.defl="ToggleButton"
     //% blockId=pksdriver_bluetooth_toggle_button block="create toggle button $name" subcategory="Bluetooth"
     //% group="Configuration"
@@ -173,14 +178,50 @@ namespace pksdriver {
      * @param strengthName The name of the strength
      * @param joystickName The name of the joystick
      */
+    //% color="#f150f1"
     //% anglename.defl="angle1"
-    //% smax.min=0 smax.max=255 smax.defl=255
+    //% smax.min=0 smax.defl=255
     //% strengthName.defl="strength1"
-    //% joyStickName.defl="Joystick"
-    //% blockId=pksdriver_bluetooth_joystick block="create joystick $joystickName angle $anglename max strength $smax strength $strengthName subcategory="Bluetooth"
+    //% joystickName.defl="Joystick"
+    //% blockId=pksdriver_bluetooth_joystick block="create joystick $joystickName angle $anglename max strength $smax strength $strengthName" subcategory="Bluetooth"
     //% group="Configuration"
     export function createJoystick(anglename: string, smax: number, strengthName: string, joystickName: string): string {
         const output: string = `J,${anglename},${smax},${strengthName},${joystickName}`;
+        return output;
+    }
+
+    /**
+     * Creates a single variable configuration.
+     * @param name The name of the variable
+     * @param isPlotable Whether the variable is plotable
+     */
+    //% color="#a000a0"
+    //% name.defl="var1"
+    //% blockId=pksdriver_bluetooth_var block="variable $name plotable $isPlotable" subcategory="Bluetooth"
+    //% group="Configuration"
+    export function createVariable(name: string, isPlotable: boolean): string {
+        // Returns a formatted string for this single variable
+        return `${name},${isPlotable}`;
+    }
+
+    /**
+     * Formats a list of variables into the final configuration string.
+     * @param vars The list of variable strings
+     */
+    //% color="#f150f1"
+    //% blockId=pksdriver_bluetooth_varlist block="variables $vars" subcategory="Bluetooth"
+    //% group="Configuration"
+    //% vars.shadow="lists_create_with"
+    //% vars.defl="pksdriver_bluetooth_var"
+    export function formatVariablesList(vars: string[]): string {
+        // Start with the prefix and the length of the list
+        let output: string = `O,${vars.length}`;
+        
+        // Append each variable string from the list
+        for (let i = 0; i < vars.length; i++) {
+            output += `,${vars[i]}`;
+        }
+        
         return output;
     }
 
