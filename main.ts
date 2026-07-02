@@ -27,6 +27,7 @@ namespace pksdriver {
             `);
         });
 
+        bluetooth.onBluetoothDisconnected(() => {connected=false})
 
         control.inBackground(() => {
             // send config for 10s should be enough right?
@@ -70,12 +71,14 @@ namespace pksdriver {
     export function showDeviceName(): void {
         // idk if this is actually needed but in case the children are so stupid that they don't know what
         // their device name is i made this function to show them what it is
-        bluetooth.onBluetoothDisconnected(() => {
+
+        control.inBackground(() => {
             while (!connected) {
                 basic.showString(control.deviceName())
                 basic.pause(200)
             }
         })
+   
     }
 }
 
