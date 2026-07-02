@@ -4,6 +4,7 @@ namespace pksdriver {
 
     /**
      * Enable Bluetooth and set up the remote GUI application framework.
+     * You must use this before using all the other bluetooth blocks
      */
     //% blockId=pksdriver_bluetooth_setup block="setup bluetooth" subcategory="Bluetooth"
     //% group="Bluetooth"
@@ -57,14 +58,17 @@ namespace pksdriver {
     }
 
     /**
-     * idk if this is actually needed but in case the children are so stupid that they don't know what
-     * their device name is i made this function to show them what it is
+     * show the device name if it is not connected to bluetooth
      */
     //% blockId=pksdriver_bluetooth_showdname block="display micro:bit name" subcategory="Bluetooth"
     //% group="Bluetooth"
     //% weight=98
     export function showDeviceName(): void {
-        basic.showString(control.deviceName())
+        // idk if this is actually needed but in case the children are so stupid that they don't know what
+        // their device name is i made this function to show them what it is
+        bluetooth.onBluetoothDisconnected(() => {
+            basic.showString(control.deviceName())
+        })
     }
 }
 
