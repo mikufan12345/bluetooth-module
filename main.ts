@@ -2,6 +2,9 @@
 //% color="#0082FC" icon="\uf293" block="PKS Driver"
 namespace pksdriver {
 
+    // it is not a good idea to use global variables but i dont care
+    let connected = false;
+
     /**
      * Enable Bluetooth and set up the remote GUI application framework.
      * You must use this before using all the other bluetooth blocks
@@ -14,6 +17,7 @@ namespace pksdriver {
         bluetooth.startUartService();
 
         bluetooth.onBluetoothConnected(function () {
+            connected = true;
             basic.showLeds(`
                 . . . . #
                 . . . # .
@@ -67,7 +71,10 @@ namespace pksdriver {
         // idk if this is actually needed but in case the children are so stupid that they don't know what
         // their device name is i made this function to show them what it is
         bluetooth.onBluetoothDisconnected(() => {
-            basic.showString(control.deviceName())
+            while (!connected) {
+                basic.showString(control.deviceName())
+                basic.pause(200)
+            }
         })
     }
 }
