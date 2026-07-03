@@ -2,6 +2,9 @@
 //% color="#0082FC" icon="\uf293" block="PKS Driver"
 namespace pksdriver {
 
+    // =================================
+    // Globals
+
     // it is not a good idea to use global variables but i dont care
     let connected = false;
     let SEND_GLOBAL_LOCK = false;
@@ -32,7 +35,7 @@ namespace pksdriver {
             actualChildName = "value";
             isFound = true;
         } else {
-            // Case B: Nested child (e.g., 'angle1' inside 'Joystick')
+            // Case B: many attriburtes components 
             let keys = Object.keys(parentChildrenMap);
             for (let i = 0; i < keys.length; i++) {
                 let p = keys[i];
@@ -73,9 +76,6 @@ namespace pksdriver {
             console.error("Warning: Received unknown variable " + name);
         }
 
-        // console.error("Updated States Map: " + JSON.stringify(statesMap));
-        // console.error("Parent-Children Map: " + JSON.stringify(parentChildrenMap));
-        // console.error("Component Types Map: " + JSON.stringify(componentTypesMap));
     }
     
     /**
@@ -146,7 +146,7 @@ namespace pksdriver {
                 }
             } else if (type == "O") {
                 // Variables List: O,count,name1,plot1,name2,plot2...
-                // We treat each variable as its own parent with a single child "value"
+                // each variable is logged as a parent.
                 // Note: plotable is NOT changeable once initialized.
                 if (parts.length >= 2) {
                     let count = parseInt(parts[1]);
@@ -166,21 +166,18 @@ namespace pksdriver {
                 console.error("Unknown config type: " + type);
             }
         }
-        // console.log("Parent-Children Map: " + JSON.stringify(parentChildrenMap));
-        // console.log("States Map: " + JSON.stringify(statesMap));
-        // console.log("Component Types Map: " + JSON.stringify(componentTypesMap));
     }
 
     /**
      * Checks if a variable name was actually defined in the configuration.
      */
     function isValidVariable(name: string): boolean {
-        // Case A: Standalone variable (from 'O' config)
+        // Case A: only 1 data attribute
         if (parentChildrenMap[name] && parentChildrenMap[name][0] === "value") {
             return true;
         }
         
-        // Case B: Nested child (e.g., 'angle1' inside 'Joystick')
+        // Case B: many data attributes
         let keys = Object.keys(parentChildrenMap);
         for (let i = 0; i < keys.length; i++) {
             if (parentChildrenMap[keys[i]].indexOf(name) !== -1) {
@@ -190,7 +187,23 @@ namespace pksdriver {
         
         return false;
     }
-
+    
+    /**
+     * Ensures a name is at most 15 characters long.
+     * If it is longer, it truncates it to the first 15 characters.
+     * @param name The name to sanitize
+     */
+    function sanitizeName(name: string): string {
+        // the technical reason for this is because the bluetooth has a 60-byte buffer 
+        // and we cannot allow names to be too long else we will have not enough space to receive data.
+        // interestingly, i think it is only a receive buffer issue? but it is too much work (and quite difficult) to 
+        // keep scraping for any data on uart receive. so we will use this as a workaround.
+        if (name.length > 15) {
+            return helpers.stringSlice(name, 0, 15);
+        }
+        return name;
+    }
+    
     // ========================================================================
     // Basic functions
 
@@ -204,8 +217,6 @@ namespace pksdriver {
     export function setupBluetooth(): void {
 
         bluetooth.startUartService();
-        serial.setTxBufferSize(200);
-        // DAL.MICROBIT_UART_S_DEFAULT_BUF_SIZE = 512;
 
         control.onEvent(DAL.MICROBIT_ID_BLE, DAL.MICROBIT_BLE_EVT_CONNECTED, function () {
             connected = true;
@@ -256,27 +267,6 @@ namespace pksdriver {
             connected = false;
         });
 
-    }
-
-    /**
-     * Test function to test if sending data through bluetooth works.
-     */
-    //% blockId=pksdriver_bluetooth_setup_handlers block="setup bluetooth handlers" subcategory="Bluetooth"
-    //% group="Bluetooth"
-    //% weight=98
-    export function initializeButtonHandlers(): void {
-        
-        // When pressing button A, send random values
-        input.onButtonPressed(Button.A, () => {
-            let v1 = Math.randomRange(0, 255);
-            let v2 = Math.randomRange(0, 255);
-            bluetooth.uartWriteLine("R,var1," + v1 + ",var2," + v2);
-        });
-
-        // When pressing button B, send fixed values
-        input.onButtonPressed(Button.B, () => {
-            bluetooth.uartWriteLine("R,var1,512,var2,512");
-        });
     }
 
     /**
@@ -341,21 +331,6 @@ namespace pksdriver {
      */
 
 
-    /**
-     * Ensures a name is at most 15 characters long.
-     * If it is longer, it truncates it to the first 15 characters.
-     * @param name The name to sanitize
-     */
-    function sanitizeName(name: string): string {
-        // the technical reason for this is because the bluetooth has a 60-byte buffer 
-        // and we cannot allow names to be too long else we will have not enough space to receive data.
-        // interestingly, i think it is only a receive buffer issue? but it is too much work (and quite difficult) to 
-        // keep scraping for any data on uart receive. so we will use this as a workaround.
-        if (name.length > 15) {
-            return helpers.stringSlice(name, 0, 15);
-        }
-        return name;
-    }
 
     /**
      * make configuration for GUI based on what you put in here.  
@@ -377,8 +352,6 @@ namespace pksdriver {
         config_string += configs.join(",")
         config_string += "\n"
 
-        // TODO: additional processing for plot is needed (i think)
-        // PROCESSING GOES HERE...
         // generate the maps based on configs
         generateMaps(configs)
 
