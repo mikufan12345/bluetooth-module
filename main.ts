@@ -4,7 +4,11 @@ namespace pksdriver {
 
     // it is not a good idea to use global variables but i dont care
     let connected = false;
+    let SEND_GLOBAL_LOCK = false;
     
+    // Map to store callbacks for button press events
+    let buttonCallbacks: { [buttonName: string]: () => void } = {};
+
     // parent -> [child1, child2, ...]
     let parentChildrenMap: { [parent: string]: string[] } = {};
     
@@ -56,13 +60,22 @@ namespace pksdriver {
 
         if (isFound && compositeKey !== "") {
             statesMap[compositeKey] = value;
+            if (componentTypesMap[parentName] === "Button") {
+                // button always sends 1 when pressed 
+                if (buttonCallbacks[parentName]) {
+                    buttonCallbacks[parentName]();
+                }
+                // Auto-reset the button state to "0" after the event
+                statesMap[compositeKey] = "0";
+            }
+
         } else {
             console.error("Warning: Received unknown variable " + name);
         }
 
-        console.error("Updated States Map: " + JSON.stringify(statesMap));
-        console.error("Parent-Children Map: " + JSON.stringify(parentChildrenMap));
-        console.error("Component Types Map: " + JSON.stringify(componentTypesMap));
+        // console.error("Updated States Map: " + JSON.stringify(statesMap));
+        // console.error("Parent-Children Map: " + JSON.stringify(parentChildrenMap));
+        // console.error("Component Types Map: " + JSON.stringify(componentTypesMap));
     }
     
     /**
@@ -153,10 +166,33 @@ namespace pksdriver {
                 console.error("Unknown config type: " + type);
             }
         }
-        console.log("Parent-Children Map: " + JSON.stringify(parentChildrenMap));
-        console.log("States Map: " + JSON.stringify(statesMap));
-        console.log("Component Types Map: " + JSON.stringify(componentTypesMap));
+        // console.log("Parent-Children Map: " + JSON.stringify(parentChildrenMap));
+        // console.log("States Map: " + JSON.stringify(statesMap));
+        // console.log("Component Types Map: " + JSON.stringify(componentTypesMap));
     }
+
+    /**
+     * Checks if a variable name was actually defined in the configuration.
+     */
+    function isValidVariable(name: string): boolean {
+        // Case A: Standalone variable (from 'O' config)
+        if (parentChildrenMap[name] && parentChildrenMap[name][0] === "value") {
+            return true;
+        }
+        
+        // Case B: Nested child (e.g., 'angle1' inside 'Joystick')
+        let keys = Object.keys(parentChildrenMap);
+        for (let i = 0; i < keys.length; i++) {
+            if (parentChildrenMap[keys[i]].indexOf(name) !== -1) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    // ========================================================================
+    // Basic functions
 
     /**
      * Enable Bluetooth and set up the remote GUI application framework.
@@ -234,14 +270,12 @@ namespace pksdriver {
         input.onButtonPressed(Button.A, () => {
             let v1 = Math.randomRange(0, 255);
             let v2 = Math.randomRange(0, 255);
-            let v3 = Math.randomRange(0, 255);
-            let v4 = Math.randomRange(0, 255);
-            bluetooth.uartWriteLine("R,hello," + v1 + ",world," + v2 + ",ggez," + v3 + ",haha," + v4);
+            bluetooth.uartWriteLine("R,var1," + v1 + ",var2," + v2);
         });
 
         // When pressing button B, send fixed values
         input.onButtonPressed(Button.B, () => {
-            bluetooth.uartWriteLine("R,hello,512,world,512,ggez,512,haha,512");
+            bluetooth.uartWriteLine("R,var1,512,var2,512");
         });
     }
 
@@ -302,9 +336,29 @@ namespace pksdriver {
      *   Currently supports buttons, sliders, text fields, joysticks, and variables.
     **/ 
 
+    /**
+     * For configuring the GUI on app side.
+     */
+
 
     /**
-     * make configuration for GUI based on what you put in here.\n  
+     * Ensures a name is at most 15 characters long.
+     * If it is longer, it truncates it to the first 15 characters.
+     * @param name The name to sanitize
+     */
+    function sanitizeName(name: string): string {
+        // the technical reason for this is because the bluetooth has a 60-byte buffer 
+        // and we cannot allow names to be too long else we will have not enough space to receive data.
+        // interestingly, i think it is only a receive buffer issue? but it is too much work (and quite difficult) to 
+        // keep scraping for any data on uart receive. so we will use this as a workaround.
+        if (name.length > 15) {
+            return helpers.stringSlice(name, 0, 15);
+        }
+        return name;
+    }
+
+    /**
+     * make configuration for GUI based on what you put in here.  
      * you must be connected to bluetooth!
      * @param configs The configuration list
      */
@@ -312,7 +366,7 @@ namespace pksdriver {
     //% color="#f150f1"
     //% blockId=pksdriver_bluetooth_makeconfig block="make configuration with $configs" subcategory="Bluetooth"
     //% configs.shadow="lists_create_with"
-    //% configs.defl="pksdriver_bluetooth_button"
+    //% configs.defl="pksdriver_bluetooth_dummy"
     //% group="Configuration"
     //% weight=98
     export function makeConfiguration(configs: string[]): void {
@@ -339,6 +393,19 @@ namespace pksdriver {
     }
 
     /**
+     * Replace this with your own configuration!
+     */
+    //% color="#f150f1"
+    //% blockId=pksdriver_bluetooth_dummy block="dummy" subcategory="Bluetooth"
+    //% group="Configuration"
+    //% blockHidden=true 
+    export function createDummy(): string {
+        // Returns an empty string.
+        // this is good cuz generateMaps() will ignore it
+        return "";
+    }
+
+    /**
      * Creates a slider
      * @param min The minimum value of slider (>0), eg: 1
      * @param max The maximum value of slider (<=255), eg: 255
@@ -358,7 +425,7 @@ namespace pksdriver {
             min = max
             max = temp
         }
-        const output: string = `S,${min},${max},${name}`
+        const output: string = `S,${min},${max},${sanitizeName(name)}`
         return output
 
     }
@@ -372,7 +439,7 @@ namespace pksdriver {
     //% blockId=pksdriver_bluetooth_button block="create button $name" subcategory="Bluetooth"
     //% group="Configuration"
     export function createButton(name: string): string {
-        const output: string = `B,${name}`;
+        const output: string = `B,${sanitizeName(name)}`;
         return output;
     }
 
@@ -385,7 +452,7 @@ namespace pksdriver {
     //% blockId=pksdriver_bluetooth_toggle_button block="create toggle button $name" subcategory="Bluetooth"
     //% group="Configuration"
     export function createToggleButton(name: string): string {
-        const output: string = `TB,${name}`;
+        const output: string = `TB,${sanitizeName(name)}`;
         return output;
     }
 
@@ -398,7 +465,7 @@ namespace pksdriver {
     //% blockId=pksdriver_bluetooth_textfield block="create text field $name" subcategory="Bluetooth"
     //% group="Configuration"
     export function createTextField(name: string): string {
-        const output: string = `TF,${name}`;
+        const output: string = `TF,${sanitizeName(name)}`;
         return output;
     }
 
@@ -417,7 +484,7 @@ namespace pksdriver {
     //% blockId=pksdriver_bluetooth_joystick block="create joystick $joystickName angle $anglename max strength $smax strength $strengthName" subcategory="Bluetooth"
     //% group="Configuration"
     export function createJoystick(anglename: string, smax: number, strengthName: string, joystickName: string): string {
-        const output: string = `J,${anglename},${smax},${strengthName},${joystickName}`;
+        const output: string = `J,${sanitizeName(anglename)},${smax},${sanitizeName(strengthName)},${sanitizeName(joystickName)}`;
         return output;
     }
 
@@ -431,8 +498,8 @@ namespace pksdriver {
     //% blockId=pksdriver_bluetooth_var block="variable $name plotable $isPlotable" subcategory="Bluetooth"
     //% group="Configuration"
     export function createVariable(name: string, isPlotable: boolean): string {
-        // Returns a formatted string for this single variable
-        return `${name},${isPlotable}`;
+        // Returns a formatted string for this variable
+        return `${sanitizeName(name)},${isPlotable}`;
     }
 
     /**
@@ -445,10 +512,9 @@ namespace pksdriver {
     //% vars.shadow="lists_create_with"
     //% vars.defl="pksdriver_bluetooth_var"
     export function formatVariablesList(vars: string[]): string {
-        // Start with the prefix and the length of the list
+
         let output: string = `O,${vars.length}`;
         
-        // Append each variable string from the list
         for (let i = 0; i < vars.length; i++) {
             output += `,${vars[i]}`;
         }
@@ -456,7 +522,7 @@ namespace pksdriver {
         return output;
     }
 
-    /**
+    /*
      * =========================================
      *                GETTERS
      * =========================================
@@ -464,47 +530,184 @@ namespace pksdriver {
      * data that is sent from the app to the microbit
      */
 
+
+
+    /**
+     * Check if a button or toggle button is currently pressed.
+     * @param name The name of the button
+     */
+    //% blockId=pksdriver_bluetooth_get_button_pressed
+    //% block="button %name is pressed"
+    //% color="#00A3A3"
+    //% subcategory="Bluetooth"
+    //% group="Values"
+    //% weight=90
+    export function isButtonToggled(name: string): boolean {
+        // personal thoughts: it doesn't make sense for a button to be pressed
+        // because the button is pressed for like 0.05ms and then released, so 
+        // we should just have another block that checks if button "x" is pressed
+        let val = statesMap[name + ".pressed"];
+        // The app sends "1" for toggled/pressed and "0" for not pressed/toggled
+        return val === "1";
+    }
+
+    /**
+     * Get the current value of a slider.
+     * @param name The name of the slider
+     */
+    //% blockId=pksdriver_bluetooth_get_slider_value
+    //% block="slider %name value"
+    //% color="#00A3A3"
+    //% subcategory="Bluetooth"
+    //% group="Values"
+    //% weight=89
+    export function getSliderValue(name: string): number {
+        let val = statesMap[name + ".value"];
+        return parseFloat(val) || 0;
+    }
+
+    /**
+     * Get the current text of a text field.
+     * @param name The name of the text field
+     */
+    //% blockId=pksdriver_bluetooth_get_textfield_value
+    //% block="text field %name value"
+    //% color="#00A3A3"
+    //% subcategory="Bluetooth"
+    //% group="Values"
+    //% weight=88
+    export function getTextFieldValue(name: string): string {
+        return statesMap[name + ".text"] || "";
+    }
+
+    /**
+     * Get the current angle of a joystick.
+     * @param name The name of the joystick
+     */
+    //% blockId=pksdriver_bluetooth_get_joystick_angle
+    //% block="joystick %name angle"
+    //% color="#00A3A3"
+    //% subcategory="Bluetooth"
+    //% group="Values"
+    //% weight=87
+    export function getJoystickAngle(name: string): number {
+        // The first child of a joystick in our map is always the angle
+        let children = parentChildrenMap[name];
+        if (children && children.length > 0) {
+            let val = statesMap[name + "." + children[0]];
+            return parseFloat(val) || 0;
+        }
+        return 0;
+    }
+
+    /**
+     * Get the current strength of a joystick.
+     * @param name The name of the joystick
+     */
+    //% blockId=pksdriver_bluetooth_get_joystick_strength
+    //% block="joystick %name strength"
+    //% color="#00A3A3"
+    //% subcategory="Bluetooth"
+    //% group="Values"
+    //% weight=86
+    export function getJoystickStrength(name: string): number {
+        // The second child of a joystick in our map is always the strength
+        let children = parentChildrenMap[name];
+        if (children && children.length > 1) {
+            let val = statesMap[name + "." + children[1]];
+            return parseFloat(val) || 0;
+        }
+        return 0;
+    }
+
+    /**
+     * Get the current value of a variable.
+     * @param name The name of the variable
+     */
+    //% blockId=pksdriver_bluetooth_get_variable_value
+    //% block="variable %name value"
+    //% color="#00A3A3"
+    //% subcategory="Bluetooth"
+    //% group="Values"
+    //% weight=85
+    export function getVariableValue(name: string): number {
+        let val = statesMap[name + ".value"];
+        return parseFloat(val) || 0;
+    }
+
+    // ========================================================================
+    // Setters: For sending data from microbit to app
+    // =======================================================================
+
+    /**
+     * Set value of a variable. Also update the value in the app correspondingly.
+     * @param name The name of the variable
+     * @param value The new value to send
+     */
+    //% blockId=pksdriver_send_var_to_app
+    //% block="set variable %name to %value "
+    //% color="#FF8C00"
+    //% group="Setters" subcategory="Bluetooth"
+    //% weight=80
+    export function sendVariableToApp(name: string, value: number): void {
+        // Ensure we are connected and the variable is valid
+        if (!connected) return;
+        // dear friends, if you ever need to edit this please remember to
+        // sanitize the raw input b y the user thanks
+        name = sanitizeName(name);
+        // console.log("looking at vname: " + name)
+        if (!isValidVariable(name)) return;
+
+        // Check the lock to prevent concurrent executions
+        if (SEND_GLOBAL_LOCK) {
+            return; 
+        }
+        SEND_GLOBAL_LOCK = true;
+
+        // Format and send the message
+        let message = `R,${name},${value}`;
+        bluetooth.uartWriteLine(message);
+
+        // Update internal data, also add delay
+        updateMaps(name, value.toString());
+        basic.pause(100);
+
+        // Release the lock
+        SEND_GLOBAL_LOCK = false;
+    }
+
+    /**
+     * Set variable to true/false and update in the app correspondingly.
+     * Note that true is (interpreted as) 1 and false is (interpreted as) 0.
+     * @param name The name of the variable
+     * @param value The boolean value to send
+     */
+    //% blockId=pksdriver_send_bool_to_app
+    //% block="set variable %name to %value"
+    //% value.shadow="toggleYesNo"
+    //% color="#FF8C00"
+    //% group="Setters" subcategory="Bluetooth"
+    //% weight=79
+    export function sendBooleanToApp(name: string, value: boolean): void {
+        
+        let bvalue = value ? 1 : 0;
+        
+        sendVariableToApp(name, bvalue);
+    }
+
+    /**
+     * Runs code when a button is pressed in the app.
+     * The button state automatically resets to "not pressed" after the code runs.
+     * @param name The name of the button
+     * @param handler The code to run when the button is pressed
+     */
+    //% blockId=pksdriver_on_button_pressed
+    //% block="on button %name pressed"
+    //% color="#FF8C00"
+    //% group="Events" subcategory="Bluetooth"
+    //% weight=95
+    export function onButtonPressed(name: string, handler: () => void): void {
+        name = sanitizeName(name);
+        buttonCallbacks[name] = handler;
+    }
 }
-
-/*
-DEBUGGING PURPOSES ONLY
-original code:
-
-function initializeBluetooth() {
-
-    // set up the bluetooth config that 
-
-    bluetooth.startUartService()
-
-    bluetooth.onBluetoothConnected(function () {
-        basic.showLeds(`
-        . . . . #
-        . . . # .
-        # . # . .
-        . # . . .
-        . . . . .
-        `)
-        loops.everyInterval(500, function on_every_interval() {
-            // this is the config data that should be sent to the app 
-            // to set up the GUI 
-            bluetooth.uartWriteLine("C,I,12,B,button1,B,button2,B,button3,B,button4,B,button5,B,button6,B,button7,S,0,255,slider1,S,0,255,slider2,S,0,255,slider3,TB,toggleButton1,TB,toggleButton2,O,3,hello,true,world,true,ggez,true,haha,false")
-        })
-    })
-}
-
-function intializeButtonHandlers() {
-    // what this does is that when u press button A, it will send the line below
-    input.onButtonPressed(Button.A, () => {
-        bluetooth.uartWriteLine("R,hello," + randint(0, 255) + ",world," + randint(0, 255) + ",ggez," + randint(0, 255) + ",haha," + randint(0, 255))
-    })
-
-    // same as above but with button B, all values are set to 512
-    input.onButtonPressed(Button.B, () => {
-        bluetooth.uartWriteLine("R,hello," + 512 + ",world," + 512 + ",ggez," + 512 + ",haha," + 512)
-    })
-
-}
-
-initializeBluetooth()
-intializeButtonHandlers()
-*/
