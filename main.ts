@@ -29,7 +29,9 @@ namespace pksdriver {
             isFound = true;
         } else {
             // Case B: Nested child (e.g., 'angle1' inside 'Joystick')
-            for (let p in parentChildrenMap) {
+            let keys = Object.keys(parentChildrenMap);
+            for (let i = 0; i < keys.length; i++) {
+                let p = keys[i];
                 if (parentChildrenMap[p].indexOf(name) !== -1) {
                     parentName = p;
                     actualChildName = name;
@@ -38,6 +40,13 @@ namespace pksdriver {
                 }
             }
         }
+
+        // Notes on value
+        // Button/ToggleButton: [value]. 0 or 1
+        // Slider: [value]. number belonging to [min, max]
+        // TextField: [value]. value: string
+        // Joystick: [angleName, strengthName]. angle: number, strength: number
+        // Variable: [value]. value: number (any).
 
         // Derive key and update values
         let compositeKey = "";
@@ -48,8 +57,12 @@ namespace pksdriver {
         if (isFound && compositeKey !== "") {
             statesMap[compositeKey] = value;
         } else {
-            console.log("Warning: Received unknown variable " + name);
+            console.error("Warning: Received unknown variable " + name);
         }
+
+        console.error("Updated States Map: " + JSON.stringify(statesMap));
+        console.error("Parent-Children Map: " + JSON.stringify(parentChildrenMap));
+        console.error("Component Types Map: " + JSON.stringify(componentTypesMap));
     }
     
     /**
@@ -74,7 +87,7 @@ namespace pksdriver {
                     let parentName = parts[1];
                     let childName = "value"; 
                     parentChildrenMap[parentName] = [childName];
-                    statesMap[parentName + "." + childName] = "false";
+                    statesMap[parentName + "." + childName] = "0";
                     componentTypesMap[parentName] = "Button";
                 } else {
                     console.error("Setup failed for Button/ToggleButton!");
@@ -140,6 +153,9 @@ namespace pksdriver {
                 console.error("Unknown config type: " + type);
             }
         }
+        console.log("Parent-Children Map: " + JSON.stringify(parentChildrenMap));
+        console.log("States Map: " + JSON.stringify(statesMap));
+        console.log("Component Types Map: " + JSON.stringify(componentTypesMap));
     }
 
     /**
@@ -152,6 +168,8 @@ namespace pksdriver {
     export function setupBluetooth(): void {
 
         bluetooth.startUartService();
+        serial.setTxBufferSize(200);
+        // DAL.MICROBIT_UART_S_DEFAULT_BUF_SIZE = 512;
 
         control.onEvent(DAL.MICROBIT_ID_BLE, DAL.MICROBIT_BLE_EVT_CONNECTED, function () {
             connected = true;
@@ -163,15 +181,16 @@ namespace pksdriver {
                 . . . . .
             `);
         });
+
         
         control.onEvent(DAL.MICROBIT_ID_BLE_UART, DAL.MICROBIT_UART_S_EVT_DELIM_MATCH, function () {
             
             // Read the data buffer up until the newline marker
             let receivedString = bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine));
-            console.log(receivedString)
+            console.log("got a message: " + receivedString);
 
             // Check if the message is a message from app
-            if (receivedString && receivedString.startsWith("T,")) {
+            if (receivedString && receivedString.indexOf("T,") === 0) {
                 let parts = receivedString.split(",");
                 
                 // Ensure the string has at least the prefix and the parameter count
@@ -276,7 +295,13 @@ namespace pksdriver {
         }
     }
 
-    
+    /** =========================================
+     *               CONFIGURATION
+     *  =========================================
+     *   This part deals with configuring the GUI on the app side. 
+     *   Currently supports buttons, sliders, text fields, joysticks, and variables.
+    **/ 
+
 
     /**
      * make configuration for GUI based on what you put in here.\n  
@@ -298,14 +323,15 @@ namespace pksdriver {
         config_string += configs.join(",")
         config_string += "\n"
 
-        if (!connected) {
-            basic.showIcon(IconNames.No);
-            return;
-        }
         // TODO: additional processing for plot is needed (i think)
         // PROCESSING GOES HERE...
         // generate the maps based on configs
         generateMaps(configs)
+
+        if (!connected) {
+            basic.showIcon(IconNames.No);
+            return;
+        }
 
         console.log(`send data: ${config_string}`)
         // automatically determine how long the configs are
@@ -324,7 +350,7 @@ namespace pksdriver {
     //% name.defl="Slider"
     //% blockId=pksdriver_bluetooth_slider block="create slider $min $max $name" subcategory="Bluetooth"
     //% group="Configuration"
-    export function createSlider(min: number, max: number, name: string): String {
+    export function createSlider(min: number, max: number, name: string): string {
 
         // silently change min/max if they are set to the wrong value
         if (min > max) {
@@ -429,6 +455,14 @@ namespace pksdriver {
         
         return output;
     }
+
+    /**
+     * =========================================
+     *                GETTERS
+     * =========================================
+     * For allowing the user to do stuff with the
+     * data that is sent from the app to the microbit
+     */
 
 }
 
