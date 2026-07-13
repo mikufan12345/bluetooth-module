@@ -33,8 +33,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install PXT CLI and dependencies
+        run: npm install pxt-microbit
+
       - name: Add micro-bit to pxt
-        run: pxt target microbit
+        run: npx pxt target microbit
 
       - name: Build extension
         run: npx pxt build
