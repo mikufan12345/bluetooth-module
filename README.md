@@ -18,7 +18,7 @@ This extension exposes the main features of the PKS Bluetooth GUI framework to M
 - Smart state mapping with composite keys to prevent variable collisions
 
 ```package
-pkscontroller=github:mikuvandev/bluetooth-module
+pkscontroller=github:mikufan12345/bluetooth-module
 ```
 
 ## Example: Setup and Configure GUI
