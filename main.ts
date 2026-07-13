@@ -1,11 +1,10 @@
 
-//% color="#0082FC" icon="\uf293" block="PKS Driver"
-namespace pksdriver {
+//% color="#0082FC" icon="\uf293" block="PKS Controller"
+namespace pkscontroller {
 
     // =================================
     // Globals
 
-    // it is not a good idea to use global variables but i dont care
     let connected = false;
     let SEND_GLOBAL_LOCK = false;
     
@@ -211,7 +210,7 @@ namespace pksdriver {
      * Enable Bluetooth and set up the remote GUI application framework.
      * You must use this before using all the other bluetooth blocks
      */
-    //% blockId=pksdriver_bluetooth_setup block="setup bluetooth" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_setup block="setup bluetooth" subcategory="Bluetooth"
     //% group="Bluetooth"
     //% weight=99
     export function setupBluetooth(): void {
@@ -255,7 +254,7 @@ namespace pksdriver {
                             // .trim() removes any accidental trailing spaces or newline characters
                             let pValue = parts[valIdx].trim(); 
                             
-                            // move shit out of this function so no more cluttering
+                            // move stuff out of this function so no more cluttering
                             updateMaps(pName, pValue);
                         }
                     }
@@ -272,13 +271,10 @@ namespace pksdriver {
     /**
      * show the device name if it is not connected to bluetooth
      */
-    //% blockId=pksdriver_bluetooth_showdname block="display micro:bit name" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_showdname block="display micro:bit name" subcategory="Bluetooth"
     //% group="Bluetooth"
     //% weight=98
     export function showDeviceName(): void {
-        // idk if this is actually needed but in case the children are so stupid that they don't know what
-        // their device name is i made this function to show them what it is
-
         control.inBackground(() => {
             while (!connected) {
                 basic.showString(control.deviceName())
@@ -291,7 +287,7 @@ namespace pksdriver {
     /**
      * will tell you if microbit is connected to bluetooth or not
      */
-    //% blockId=pksdriver_bluetooth_connected block="bluetooth is connected" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_connected block="bluetooth is connected" subcategory="Bluetooth"
     //% group="Bluetooth"
     //% weight=98
     export function isConnected(): boolean {
@@ -302,7 +298,7 @@ namespace pksdriver {
      * wait until you are connected to bluetooth
      * blocks next block
      */
-    //% blockId=pksdriver_bluetooth_waitconn block="wait until bluetooth is connected" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_waitconn block="wait until bluetooth is connected" subcategory="Bluetooth"
     //% group="Bluetooth"
     //% weight=98
     export function waitUntilConnected(): void {
@@ -339,9 +335,9 @@ namespace pksdriver {
      */
     // TODO: update subcategory in the future
     //% color="#f150f1"
-    //% blockId=pksdriver_bluetooth_makeconfig block="make configuration with $configs" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_makeconfig block="make configuration with $configs" subcategory="Bluetooth"
     //% configs.shadow="lists_create_with"
-    //% configs.defl="pksdriver_bluetooth_dummy"
+    //% configs.defl="pkscontroller_bluetooth_dummy"
     //% group="Configuration"
     //% weight=98
     export function makeConfiguration(configs: string[]): void {
@@ -369,7 +365,7 @@ namespace pksdriver {
      * Replace this with your own configuration!
      */
     //% color="#f150f1"
-    //% blockId=pksdriver_bluetooth_dummy block="dummy" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_dummy block="dummy" subcategory="Bluetooth"
     //% group="Configuration"
     //% blockHidden=true 
     export function createDummy(): string {
@@ -388,7 +384,7 @@ namespace pksdriver {
     //% min.defl=0
     //% max.defl=255
     //% name.defl="Slider"
-    //% blockId=pksdriver_bluetooth_slider block="create slider $min $max $name" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_slider block="create slider $min $max $name" subcategory="Bluetooth"
     //% group="Configuration"
     export function createSlider(min: number, max: number, name: string): string {
 
@@ -409,7 +405,7 @@ namespace pksdriver {
      */
     //% color="#f150f1"
     //% name.defl="Button"
-    //% blockId=pksdriver_bluetooth_button block="create button $name" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_button block="create button $name" subcategory="Bluetooth"
     //% group="Configuration"
     export function createButton(name: string): string {
         const output: string = `B,${sanitizeName(name)}`;
@@ -422,7 +418,7 @@ namespace pksdriver {
      */
     //% color="#f150f1"
     //% name.defl="ToggleButton"
-    //% blockId=pksdriver_bluetooth_toggle_button block="create toggle button $name" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_toggle_button block="create toggle button $name" subcategory="Bluetooth"
     //% group="Configuration"
     export function createToggleButton(name: string): string {
         const output: string = `TB,${sanitizeName(name)}`;
@@ -435,7 +431,7 @@ namespace pksdriver {
      */
     //% color="#f150f1"
     //% name.defl="TextField"
-    //% blockId=pksdriver_bluetooth_textfield block="create text field $name" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_textfield block="create text field $name" subcategory="Bluetooth"
     //% group="Configuration"
     export function createTextField(name: string): string {
         const output: string = `TF,${sanitizeName(name)}`;
@@ -454,7 +450,7 @@ namespace pksdriver {
     //% smax.min=0 smax.defl=255
     //% strengthName.defl="strength1"
     //% joystickName.defl="Joystick"
-    //% blockId=pksdriver_bluetooth_joystick block="create joystick $joystickName angle $anglename max strength $smax strength $strengthName" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_joystick block="create joystick $joystickName angle $anglename max strength $smax strength $strengthName" subcategory="Bluetooth"
     //% group="Configuration"
     export function createJoystick(anglename: string, smax: number, strengthName: string, joystickName: string): string {
         const output: string = `J,${sanitizeName(anglename)},${smax},${sanitizeName(strengthName)},${sanitizeName(joystickName)}`;
@@ -468,7 +464,7 @@ namespace pksdriver {
      */
     //% color="#a000a0"
     //% name.defl="var1"
-    //% blockId=pksdriver_bluetooth_var block="variable $name plotable $isPlotable" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_var block="variable $name plotable $isPlotable" subcategory="Bluetooth"
     //% group="Configuration"
     export function createVariable(name: string, isPlotable: boolean): string {
         // Returns a formatted string for this variable
@@ -480,10 +476,10 @@ namespace pksdriver {
      * @param vars The list of variable strings
      */
     //% color="#f150f1"
-    //% blockId=pksdriver_bluetooth_varlist block="variables $vars" subcategory="Bluetooth"
+    //% blockId=pkscontroller_bluetooth_varlist block="variables $vars" subcategory="Bluetooth"
     //% group="Configuration"
     //% vars.shadow="lists_create_with"
-    //% vars.defl="pksdriver_bluetooth_var"
+    //% vars.defl="pkscontroller_bluetooth_var"
     export function formatVariablesList(vars: string[]): string {
 
         let output: string = `O,${vars.length}`;
@@ -509,7 +505,7 @@ namespace pksdriver {
      * Check if a button or toggle button is currently pressed.
      * @param name The name of the button
      */
-    //% blockId=pksdriver_bluetooth_get_button_pressed
+    //% blockId=pkscontroller_bluetooth_get_button_pressed
     //% block="button %name is pressed"
     //% color="#00A3A3"
     //% subcategory="Bluetooth"
@@ -528,7 +524,7 @@ namespace pksdriver {
      * Get the current value of a slider.
      * @param name The name of the slider
      */
-    //% blockId=pksdriver_bluetooth_get_slider_value
+    //% blockId=pkscontroller_bluetooth_get_slider_value
     //% block="slider %name value"
     //% color="#00A3A3"
     //% subcategory="Bluetooth"
@@ -543,7 +539,7 @@ namespace pksdriver {
      * Get the current text of a text field.
      * @param name The name of the text field
      */
-    //% blockId=pksdriver_bluetooth_get_textfield_value
+    //% blockId=pkscontroller_bluetooth_get_textfield_value
     //% block="text field %name value"
     //% color="#00A3A3"
     //% subcategory="Bluetooth"
@@ -557,7 +553,7 @@ namespace pksdriver {
      * Get the current angle of a joystick.
      * @param name The name of the joystick
      */
-    //% blockId=pksdriver_bluetooth_get_joystick_angle
+    //% blockId=pkscontroller_bluetooth_get_joystick_angle
     //% block="joystick %name angle"
     //% color="#00A3A3"
     //% subcategory="Bluetooth"
@@ -577,7 +573,7 @@ namespace pksdriver {
      * Get the current strength of a joystick.
      * @param name The name of the joystick
      */
-    //% blockId=pksdriver_bluetooth_get_joystick_strength
+    //% blockId=pkscontroller_bluetooth_get_joystick_strength
     //% block="joystick %name strength"
     //% color="#00A3A3"
     //% subcategory="Bluetooth"
@@ -597,7 +593,7 @@ namespace pksdriver {
      * Get the current value of a variable.
      * @param name The name of the variable
      */
-    //% blockId=pksdriver_bluetooth_get_variable_value
+    //% blockId=pkscontroller_bluetooth_get_variable_value
     //% block="variable %name value"
     //% color="#00A3A3"
     //% subcategory="Bluetooth"
@@ -617,7 +613,7 @@ namespace pksdriver {
      * @param name The name of the variable
      * @param value The new value to send
      */
-    //% blockId=pksdriver_send_var_to_app
+    //% blockId=pkscontroller_send_var_to_app
     //% block="set variable %name to %value "
     //% color="#FF8C00"
     //% group="Setters" subcategory="Bluetooth"
@@ -655,7 +651,7 @@ namespace pksdriver {
      * @param name The name of the variable
      * @param value The boolean value to send
      */
-    //% blockId=pksdriver_send_bool_to_app
+    //% blockId=pkscontroller_send_bool_to_app
     //% block="set variable %name to %value"
     //% value.shadow="toggleYesNo"
     //% color="#FF8C00"
@@ -674,7 +670,7 @@ namespace pksdriver {
      * @param name The name of the button
      * @param handler The code to run when the button is pressed
      */
-    //% blockId=pksdriver_on_button_pressed
+    //% blockId=pkscontroller_on_button_pressed
     //% block="on button %name pressed"
     //% color="#FF8C00"
     //% group="Events" subcategory="Bluetooth"
