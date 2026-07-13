@@ -39,6 +39,9 @@ jobs:
       - name: Add micro-bit to pxt
         run: npx pxt target microbit
 
+      - name: install PXT packages
+        run: npx pxt install
+
       - name: Build extension
         run: npx pxt build
 
